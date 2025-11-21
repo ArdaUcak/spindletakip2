@@ -1,5 +1,6 @@
 import csv
 import os
+import sys
 import tkinter as tk
 from tkinter import ttk, messagebox
 from datetime import datetime
@@ -13,7 +14,10 @@ DATE_FORMAT = "%d-%m-%Y"
 
 
 def resource_path(filename: str) -> str:
-    base_path = os.path.abspath(os.path.dirname(__file__))
+    if getattr(sys, "frozen", False):
+        base_path = os.path.dirname(sys.executable)
+    else:
+        base_path = os.path.abspath(os.path.dirname(__file__))
     return os.path.join(base_path, filename)
 
 

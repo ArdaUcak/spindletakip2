@@ -16,7 +16,7 @@ This application opens with a login screen titled **"Giriş Ekranı"** that matc
 A bottom-right button labeled **"Excel'e Aktar (CSV)"** exports both tables to `takip_export.csv` in a sectioned format.【F:main.py†L134-L137】【F:main.py†L350-L378】
 
 ## Dosya Konumu
-All CSV files (`spindle_data.csv`, `yedek_data.csv`, `takip_export.csv`) are stored alongside the executable/script using the `resource_path` helper so they travel with the build.【F:main.py†L16-L22】【F:main.py†L112-L138】
+All CSV files (`spindle_data.csv`, `yedek_data.csv`, `takip_export.csv`) are stored alongside the executable/script using the `resource_path` helper; in frozen (PyInstaller) builds it resolves to the directory of the executable so data persists across runs instead of the temporary extraction folder.【F:main.py†L16-L24】【F:main.py†L112-L138】
 
 ## Çalıştırma
 Run the app with Python 3.12 using:
