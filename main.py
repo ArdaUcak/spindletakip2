@@ -9,7 +9,7 @@ LOGIN_TITLE = "Giriş Ekranı"
 USERNAME = "BAKIM"
 PASSWORD = "MAXIME"
 WINDOW_SIZE = "1100x650"
-DATE_FORMAT = "%Y-%m-%d"
+DATE_FORMAT = "%d-%m-%Y"
 
 
 def resource_path(filename: str) -> str:
