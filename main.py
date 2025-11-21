@@ -137,6 +137,19 @@ class MainApp:
         export_button.pack(side=tk.RIGHT)
 
     def _build_spindle_tab(self, parent):
+        form_frame = ttk.LabelFrame(parent, text="Spindle Bilgileri")
+        form_frame.pack(fill=tk.X, padx=10, pady=10)
+
+        labels = ["Referans ID", "Çalışma Saati", "Son Güncelleme"]
+        self.spindle_entries = {}
+        for i, label in enumerate(labels):
+            ttk.Label(form_frame, text=label).grid(row=0, column=i * 2, padx=5, pady=5, sticky=tk.W)
+            entry = ttk.Entry(form_frame)
+            entry.grid(row=0, column=i * 2 + 1, padx=5, pady=5, sticky=tk.W)
+            self.spindle_entries[label] = entry
+
+        self.spindle_entries["Son Güncelleme"].insert(0, datetime.now().strftime(DATE_FORMAT))
+
         search_frame = ttk.Frame(parent)
         search_frame.pack(fill=tk.X, padx=10)
         ttk.Label(search_frame, text="Referans ID ile Ara:").pack(side=tk.LEFT, padx=5, pady=5)
@@ -146,9 +159,9 @@ class MainApp:
 
         btn_frame = ttk.Frame(parent)
         btn_frame.pack(fill=tk.X, padx=10)
-        ttk.Button(btn_frame, text="Spindle Ekle", command=self._add_spindle_dialog).pack(side=tk.LEFT, padx=5, pady=5)
+        ttk.Button(btn_frame, text="Spindle Ekle", command=self._add_spindle).pack(side=tk.LEFT, padx=5, pady=5)
         ttk.Button(btn_frame, text="Seçileni Sil", command=self._delete_spindle).pack(side=tk.LEFT, padx=5, pady=5)
-        ttk.Button(btn_frame, text="Seçileni Düzenle", command=self._edit_spindle_dialog).pack(side=tk.LEFT, padx=5, pady=5)
+        ttk.Button(btn_frame, text="Seçileni Düzenle", command=self._edit_spindle).pack(side=tk.LEFT, padx=5, pady=5)
 
         tree_frame = ttk.Frame(parent)
         tree_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
@@ -159,8 +172,32 @@ class MainApp:
             self.spindle_tree.heading(col, text=col)
             self.spindle_tree.column(col, width=150, anchor=tk.W)
         self.spindle_tree.pack(fill=tk.BOTH, expand=True)
+        self.spindle_tree.bind("<<TreeviewSelect>>", self._on_spindle_select)
 
     def _build_yedek_tab(self, parent):
+        form_frame = ttk.LabelFrame(parent, text="Yedek Bilgileri")
+        form_frame.pack(fill=tk.X, padx=10, pady=10)
+
+        labels = [
+            "Referans ID",
+            "Açıklama",
+            "Tamirde mi",
+            "Bakıma Gönderilme",
+            "Geri Dönme",
+            "Son Güncelleme",
+        ]
+        self.yedek_entries = {}
+        for i, label in enumerate(labels):
+            ttk.Label(form_frame, text=label).grid(row=0, column=i * 2, padx=5, pady=5, sticky=tk.W)
+            entry = ttk.Entry(form_frame)
+            entry.grid(row=0, column=i * 2 + 1, padx=5, pady=5, sticky=tk.W)
+            self.yedek_entries[label] = entry
+
+        today = datetime.now().strftime(DATE_FORMAT)
+        self.yedek_entries["Bakıma Gönderilme"].insert(0, today)
+        self.yedek_entries["Geri Dönme"].insert(0, today)
+        self.yedek_entries["Son Güncelleme"].insert(0, today)
+
         search_frame = ttk.Frame(parent)
         search_frame.pack(fill=tk.X, padx=10)
         ttk.Label(search_frame, text="Referans ID ile Ara:").pack(side=tk.LEFT, padx=5, pady=5)
@@ -170,9 +207,9 @@ class MainApp:
 
         btn_frame = ttk.Frame(parent)
         btn_frame.pack(fill=tk.X, padx=10)
-        ttk.Button(btn_frame, text="Yedek Ekle", command=self._add_yedek_dialog).pack(side=tk.LEFT, padx=5, pady=5)
+        ttk.Button(btn_frame, text="Yedek Ekle", command=self._add_yedek).pack(side=tk.LEFT, padx=5, pady=5)
         ttk.Button(btn_frame, text="Seçileni Sil", command=self._delete_yedek).pack(side=tk.LEFT, padx=5, pady=5)
-        ttk.Button(btn_frame, text="Seçileni Düzenle", command=self._edit_yedek_dialog).pack(side=tk.LEFT, padx=5, pady=5)
+        ttk.Button(btn_frame, text="Seçileni Düzenle", command=self._edit_yedek).pack(side=tk.LEFT, padx=5, pady=5)
 
         tree_frame = ttk.Frame(parent)
         tree_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
@@ -191,6 +228,10 @@ class MainApp:
             self.yedek_tree.heading(col, text=col)
             self.yedek_tree.column(col, width=150, anchor=tk.W)
         self.yedek_tree.pack(fill=tk.BOTH, expand=True)
+        self.yedek_tree.bind("<<TreeviewSelect>>", self._on_yedek_select)
+
+    def _get_entry_values(self, entries):
+        return {label: entry.get().strip() for label, entry in entries.items()}
 
     def _refresh_spindle_tree(self, rows=None):
         for item in self.spindle_tree.get_children():
@@ -199,6 +240,18 @@ class MainApp:
         for row in rows:
             self.spindle_tree.insert("", tk.END, values=[row.get(col, "") for col in self.spindle_tree["columns"]])
 
+    def _on_spindle_select(self, event=None):
+        selected = self.spindle_tree.selection()
+        if not selected:
+            return
+        values = self.spindle_tree.item(selected[0], "values")
+        columns = self.spindle_tree["columns"]
+        for col, val in zip(columns[1:], values[1:]):
+            entry = self.spindle_entries.get(col)
+            if entry is not None:
+                entry.delete(0, tk.END)
+                entry.insert(0, val)
+
     def _refresh_yedek_tree(self, rows=None):
         for item in self.yedek_tree.get_children():
             self.yedek_tree.delete(item)
@@ -206,44 +259,26 @@ class MainApp:
         for row in rows:
             self.yedek_tree.insert("", tk.END, values=[row.get(col, "") for col in self.yedek_tree["columns"]])
 
-    def _open_spindle_dialog(self, title, on_submit, initial=None):
-        dialog = tk.Toplevel(self.root)
-        dialog.title(title)
-        dialog.grab_set()
+    def _on_yedek_select(self, event=None):
+        selected = self.yedek_tree.selection()
+        if not selected:
+            return
+        values = self.yedek_tree.item(selected[0], "values")
+        columns = self.yedek_tree["columns"]
+        for col, val in zip(columns[1:], values[1:]):
+            entry = self.yedek_entries.get(col)
+            if entry is not None:
+                entry.delete(0, tk.END)
+                entry.insert(0, val)
 
-        labels = ["Referans ID", "Çalışma Saati", "Son Güncelleme"]
-        entries = {}
-        today = datetime.now().strftime(DATE_FORMAT)
-        defaults = {"Son Güncelleme": today}
-
-        for i, label in enumerate(labels):
-            ttk.Label(dialog, text=label).grid(row=i, column=0, padx=5, pady=5, sticky=tk.W)
-            entry = ttk.Entry(dialog)
-            entry.grid(row=i, column=1, padx=5, pady=5, sticky=tk.W)
-            value = (initial or {}).get(label, defaults.get(label, ""))
-            entry.insert(0, value)
-            entries[label] = entry
-
-        def submit():
-            values = {k: v.get().strip() for k, v in entries.items()}
-            if not values["Referans ID"]:
-                messagebox.showerror("Hata", "Referans ID zorunludur.", parent=dialog)
-                return
-            on_submit(values)
-            dialog.destroy()
-
-        button_frame = ttk.Frame(dialog)
-        button_frame.grid(row=len(labels), column=0, columnspan=2, pady=10)
-        ttk.Button(button_frame, text="Kaydet", command=submit).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="İptal", command=dialog.destroy).pack(side=tk.LEFT, padx=5)
-
-    def _add_spindle_dialog(self):
-        def handle_submit(values):
-            self.spindle_manager.add_record(values)
-            self._refresh_spindle_tree()
-            messagebox.showinfo("Başarılı", "Kayıt eklendi.")
-
-        self._open_spindle_dialog("Spindle Ekle", handle_submit)
+    def _add_spindle(self):
+        values = self._get_entry_values(self.spindle_entries)
+        if not values["Referans ID"]:
+            messagebox.showerror("Hata", "Referans ID zorunludur.")
+            return
+        self.spindle_manager.add_record(values)
+        self._refresh_spindle_tree()
+        messagebox.showinfo("Başarılı", "Kayıt eklendi.")
 
     def _delete_spindle(self):
         selected = self.spindle_tree.selection()
@@ -255,28 +290,33 @@ class MainApp:
             self._refresh_spindle_tree()
             messagebox.showinfo("Başarılı", "Kayıt silindi.")
 
-    def _edit_spindle_dialog(self):
+    def _edit_spindle(self):
         selected = self.spindle_tree.selection()
         if not selected:
             messagebox.showerror("Hata", "Düzenlemek için bir kayıt seçin.")
             return
-
-        values = self.spindle_tree.item(selected[0], "values")
-        columns = self.spindle_tree["columns"]
-        record = dict(zip(columns, values))
-        record_id = record.get("id")
-
-        def handle_submit(updated_values):
-            self.spindle_manager.update_record(record_id, updated_values)
-            self._refresh_spindle_tree()
-            messagebox.showinfo("Başarılı", "Kayıt güncellendi.")
-
-        self._open_spindle_dialog("Spindle Düzenle", handle_submit, record)
+        record_id = self.spindle_tree.item(selected[0], "values")[0]
+        values = self._get_entry_values(self.spindle_entries)
+        if not values["Referans ID"]:
+            messagebox.showerror("Hata", "Referans ID zorunludur.")
+            return
+        self.spindle_manager.update_record(record_id, values)
+        self._refresh_spindle_tree()
+        messagebox.showinfo("Başarılı", "Kayıt güncellendi.")
 
     def _search_spindle(self):
         query = self.spindle_search_entry.get().strip()
         results = self.spindle_manager.search(**{"Referans ID": query}) if query else self.spindle_manager.all_records()
         self._refresh_spindle_tree(results)
+
+    def _add_yedek(self):
+        values = self._get_entry_values(self.yedek_entries)
+        if not values["Referans ID"]:
+            messagebox.showerror("Hata", "Referans ID zorunludur.")
+            return
+        self.yedek_manager.add_record(values)
+        self._refresh_yedek_tree()
+        messagebox.showinfo("Başarılı", "Kayıt eklendi.")
 
     def _delete_yedek(self):
         selected = self.yedek_tree.selection()
@@ -288,78 +328,24 @@ class MainApp:
             self._refresh_yedek_tree()
             messagebox.showinfo("Başarılı", "Kayıt silindi.")
 
-    def _search_yedek(self):
-        query = self.yedek_search_entry.get().strip()
-        results = self.yedek_manager.search(**{"Referans ID": query}) if query else self.yedek_manager.all_records()
-        self._refresh_yedek_tree(results)
-
-    def _open_yedek_dialog(self, title, on_submit, initial=None):
-        dialog = tk.Toplevel(self.root)
-        dialog.title(title)
-        dialog.grab_set()
-
-        labels = [
-            "Referans ID",
-            "Açıklama",
-            "Tamirde mi",
-            "Bakıma Gönderilme",
-            "Geri Dönme",
-            "Son Güncelleme",
-        ]
-
-        entries = {}
-        today = datetime.now().strftime(DATE_FORMAT)
-        defaults = {
-            "Bakıma Gönderilme": today,
-            "Geri Dönme": today,
-            "Son Güncelleme": today,
-        }
-        for i, label in enumerate(labels):
-            ttk.Label(dialog, text=label).grid(row=i, column=0, padx=5, pady=5, sticky=tk.W)
-            entry = ttk.Entry(dialog)
-            entry.grid(row=i, column=1, padx=5, pady=5, sticky=tk.W)
-            value = (initial or {}).get(label, defaults.get(label, ""))
-            entry.insert(0, value)
-            entries[label] = entry
-
-        def submit():
-            values = {k: v.get().strip() for k, v in entries.items()}
-            if not values["Referans ID"]:
-                messagebox.showerror("Hata", "Referans ID zorunludur.", parent=dialog)
-                return
-            on_submit(values)
-            dialog.destroy()
-
-        button_frame = ttk.Frame(dialog)
-        button_frame.grid(row=len(labels), column=0, columnspan=2, pady=10)
-        ttk.Button(button_frame, text="Kaydet", command=submit).pack(side=tk.LEFT, padx=5)
-        ttk.Button(button_frame, text="İptal", command=dialog.destroy).pack(side=tk.LEFT, padx=5)
-
-    def _add_yedek_dialog(self):
-        def handle_submit(values):
-            self.yedek_manager.add_record(values)
-            self._refresh_yedek_tree()
-            messagebox.showinfo("Başarılı", "Kayıt eklendi.")
-
-        self._open_yedek_dialog("Yedek Ekle", handle_submit)
-
-    def _edit_yedek_dialog(self):
+    def _edit_yedek(self):
         selected = self.yedek_tree.selection()
         if not selected:
             messagebox.showerror("Hata", "Düzenlemek için bir kayıt seçin.")
             return
+        record_id = self.yedek_tree.item(selected[0], "values")[0]
+        values = self._get_entry_values(self.yedek_entries)
+        if not values["Referans ID"]:
+            messagebox.showerror("Hata", "Referans ID zorunludur.")
+            return
+        self.yedek_manager.update_record(record_id, values)
+        self._refresh_yedek_tree()
+        messagebox.showinfo("Başarılı", "Kayıt güncellendi.")
 
-        values = self.yedek_tree.item(selected[0], "values")
-        columns = self.yedek_tree["columns"]
-        record = dict(zip(columns, values))
-        record_id = record.get("id")
-
-        def handle_submit(updated_values):
-            self.yedek_manager.update_record(record_id, updated_values)
-            self._refresh_yedek_tree()
-            messagebox.showinfo("Başarılı", "Kayıt güncellendi.")
-
-        self._open_yedek_dialog("Yedeği Düzenle", handle_submit, record)
+    def _search_yedek(self):
+        query = self.yedek_search_entry.get().strip()
+        results = self.yedek_manager.search(**{"Referans ID": query}) if query else self.yedek_manager.all_records()
+        self._refresh_yedek_tree(results)
 
     def _export_data(self):
         spindle_rows = self.spindle_manager.all_records()
