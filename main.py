@@ -10,6 +10,7 @@ LOGIN_TITLE = "Giriş Ekranı"
 USERNAME = "BAKIM"
 PASSWORD = "MAXIME"
 WINDOW_SIZE = "1100x650"
+LOGIN_WINDOW_SIZE = "500x350"
 DATE_FORMAT = "%d-%m-%Y"
 
 
@@ -104,7 +105,14 @@ class MainApp:
 
         self.spindle_manager = DataManager(
             "spindle_data.csv",
-            ["id", "Referans ID", "Çalışma Saati", "Son Güncelleme"],
+            [
+                "id",
+                "Referans ID",
+                "Çalışma Saati",
+                "Takılı Olduğu Makine",
+                "Makinaya Takıldığı Tarih",
+                "Son Güncelleme",
+            ],
         )
         self.yedek_manager = DataManager(
             "yedek_data.csv",
@@ -115,6 +123,8 @@ class MainApp:
                 "Tamirde mi",
                 "Bakıma Gönderilme",
                 "Geri Dönme",
+                "Söküldüğü Makine",
+                "Sökülme Tarihi",
                 "Son Güncelleme",
             ],
         )
@@ -157,7 +167,14 @@ class MainApp:
         tree_frame = ttk.Frame(parent)
         tree_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
-        columns = ["id", "Referans ID", "Çalışma Saati", "Son Güncelleme"]
+        columns = [
+            "id",
+            "Referans ID",
+            "Çalışma Saati",
+            "Takılı Olduğu Makine",
+            "Makinaya Takıldığı Tarih",
+            "Son Güncelleme",
+        ]
         self.spindle_tree = ttk.Treeview(tree_frame, columns=columns, show="headings")
         for col in columns:
             self.spindle_tree.heading(col, text=col)
@@ -188,6 +205,8 @@ class MainApp:
             "Tamirde mi",
             "Bakıma Gönderilme",
             "Geri Dönme",
+            "Söküldüğü Makine",
+            "Sökülme Tarihi",
             "Son Güncelleme",
         ]
         self.yedek_tree = ttk.Treeview(tree_frame, columns=columns, show="headings")
@@ -215,9 +234,10 @@ class MainApp:
         dialog.title(title)
         dialog.grab_set()
 
-        labels = ["Referans ID", "Çalışma Saati"]
+        labels = ["Referans ID", "Çalışma Saati", "Takılı Olduğu Makine", "Makinaya Takıldığı Tarih"]
         entries = {}
-        defaults = {}
+        today = datetime.now().strftime(DATE_FORMAT)
+        defaults = {"Makinaya Takıldığı Tarih": today}
 
         for i, label in enumerate(labels):
             ttk.Label(dialog, text=label).grid(row=i, column=0, padx=5, pady=5, sticky=tk.W)
@@ -308,6 +328,8 @@ class MainApp:
             "Tamirde mi",
             "Bakıma Gönderilme",
             "Geri Dönme",
+            "Söküldüğü Makine",
+            "Sökülme Tarihi",
         ]
 
         entries = {}
@@ -315,6 +337,7 @@ class MainApp:
         defaults = {
             "Bakıma Gönderilme": today,
             "Geri Dönme": today,
+            "Sökülme Tarihi": today,
         }
         for i, label in enumerate(labels):
             ttk.Label(dialog, text=label).grid(row=i, column=0, padx=5, pady=5, sticky=tk.W)
@@ -375,16 +398,33 @@ class MainApp:
         with open(export_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow(["--- Spindle Takip ---"])
-            writer.writerow(["Referans ID", "Saat", "Son Güncelleme"])
+            writer.writerow([
+                "Referans ID",
+                "Saat",
+                "Takılı Olduğu Makine",
+                "Takıldığı Tarih",
+                "Son Güncelleme",
+            ])
             for row in spindle_rows:
                 writer.writerow([
                     row.get("Referans ID", ""),
                     row.get("Çalışma Saati", ""),
+                    row.get("Takılı Olduğu Makine", ""),
+                    row.get("Makinaya Takıldığı Tarih", ""),
                     row.get("Son Güncelleme", ""),
                 ])
             writer.writerow([])
             writer.writerow(["--- Yedek Takip ---"])
-            writer.writerow(["Referans ID", "Açıklama", "Tamirde", "Gönderildi", "Dönen", "Son Güncelleme"])
+            writer.writerow([
+                "Referans ID",
+                "Açıklama",
+                "Tamirde",
+                "Gönderildi",
+                "Dönen",
+                "Söküldüğü Makine",
+                "Sökülme Tarihi",
+                "Son Güncelleme",
+            ])
             for row in yedek_rows:
                 writer.writerow([
                     row.get("Referans ID", ""),
@@ -392,6 +432,8 @@ class MainApp:
                     row.get("Tamirde mi", ""),
                     row.get("Bakıma Gönderilme", ""),
                     row.get("Geri Dönme", ""),
+                    row.get("Söküldüğü Makine", ""),
+                    row.get("Sökülme Tarihi", ""),
                     row.get("Son Güncelleme", ""),
                 ])
         messagebox.showinfo("Başarılı", f"Veriler {export_path} dosyasına aktarıldı.")
@@ -403,7 +445,7 @@ class MainApp:
 def show_login():
     login_root = tk.Tk()
     login_root.title(LOGIN_TITLE)
-    login_root.geometry(WINDOW_SIZE)
+    login_root.geometry(LOGIN_WINDOW_SIZE)
     login_root.resizable(False, False)
 
     frame = ttk.Frame(login_root, padding=40)
